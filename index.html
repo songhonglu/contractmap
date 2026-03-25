@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浙江省机电集团合同数字化平台 · 系统集成全景图 v2.0</title>
+
+<!-- ═══ 登录保护层（优先执行，防止内容闪现） ═══ -->
+<script>
+/* 使用 SHA-256 哈希校验凭证，不明文存储密码 */
+const AUTH_HASH = 'b0ccefba08768538d1dc999f85155c95b27b17820324493c8278422c598fbd6c';
+// 检查是否已登录
+(function() {
+  const token = sessionStorage.getItem('cim_auth');
+  if (token !== AUTH_HASH) {
+    // 未登录：立刻隐藏 body
+    document.documentElement.style.visibility = 'hidden';
+  }
+})();
+</script>
+
+<style>
+/* ─── 登录遮罩层 ─── */
+#login-overlay {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  background: #0a0e17;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+#login-overlay.hidden { display: none; }
+
+.login-box {
+  background: #0f1923;
+  border: 1px solid #1f3a5f;
+  border-radius: 16px;
+  padding: 40px 44px;
+  width: 380px;
+  box-shadow: 0 0 60px rgba(31,111,235,0.2), 0 4px 32px rgba(0,0,0,0.6);
+  position: relative;
+  overflow: hidden;
+}
+.login-box::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, #1f6feb, #58a6ff, #1f6feb, transparent);
+}
+.login-logo {
+  text-align: center; margin-bottom: 28px;
+}
+.login-logo .licon {
+  font-size: 36px; display: block; margin-bottom: 10px;
+}
+.login-logo h2 {
+  font-size: 16px; font-weight: 800; color: #e6edf3;
+  letter-spacing: .5px; line-height: 1.4;
+}
+.login-logo p {
+  font-size: 11px; color: #58a6ff; margin-top: 5px;
+}
+.login-field {
+  margin-bottom: 16px;
+}
+.login-field label {
+  display: block; font-size: 11px; font-weight: 700;
+  color: #6e7681; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 7px;
+}
+.login-field input {
+  width: 100%; padding: 11px 14px;
+  background: #161b22; border: 1px solid #21262d;
+  border-radius: 8px; color: #e6edf3; font-size: 14px;
+  outline: none; transition: border-color .2s, box-shadow .2s;
+  font-family: inherit;
+}
+.login-field input:focus {
+  border-color: #1f6feb;
+  box-shadow: 0 0 0 3px rgba(31,111,235,0.2);
+}
+.login-field input::placeholder { color: #484f58; }
+.login-btn {
+  width: 100%; padding: 13px;
+  background: linear-gradient(90deg, #1f6feb, #388bfd);
+  color: #fff; font-size: 14px; font-weight: 800;
+  border: none; border-radius: 8px; cursor: pointer;
+  margin-top: 8px; letter-spacing: .5px;
+  transition: opacity .2s, transform .1s;
+}
+.login-btn:hover { opacity: .9; }
+.login-btn:active { transform: scale(.98); }
+.login-err {
+  margin-top: 12px; padding: 10px 14px;
+  background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3);
+  border-radius: 6px; color: #f85149; font-size: 12px;
+  text-align: center; display: none;
+}
+.login-err.show { display: block; }
+.login-footer {
+  text-align: center; margin-top: 24px;
+  font-size: 10px; color: #484f58;
+}
+.logout-btn {
+  position: fixed; bottom: 18px; left: 18px; z-index: 1001;
+  background: rgba(22,27,34,0.9); border: 1px solid #21262d;
+  border-radius: 6px; color: #6e7681; font-size: 11px;
+  padding: 6px 12px; cursor: pointer; transition: all .2s;
+  font-family: inherit;
+}
+.logout-btn:hover { border-color: #f85149; color: #f85149; }
+</style>
+
+<script>
+/* ─── 登录系统核心逻辑 ─── */
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin() {
+  const user  = document.getElementById('l-user').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const err   = document.getElementById('l-err');
+  if (!user || !pass) { showErr('请输入用户名和密码'); return; }
+  // 计算 hash = sha256(username + ':' + password)
+  const hash = await sha256(user + ':' + pass);
+  if (hash === AUTH_HASH) {
+    sessionStorage.setItem('cim_auth', AUTH_HASH);
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.documentElement.style.visibility = 'visible';
+    document.getElementById('logout-bar').style.display = 'block';
+    err.classList.remove('show');
+  } else {
+    showErr('用户名或密码错误，请重试');
+    document.getElementById('l-pass').value = '';
+  }
+}
+
+function showErr(msg) {
+  const err = document.getElementById('l-err');
+  err.textContent = msg; err.classList.add('show');
+}
+
+function doLogout() {
+  sessionStorage.removeItem('cim_auth');
+  location.reload();
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  const token = sessionStorage.getItem('cim_auth');
+  if (token === AUTH_HASH) {
+    // 已登录
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.documentElement.style.visibility = 'visible';
+    document.getElementById('logout-bar').style.display = 'block';
+  } else {
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.documentElement.style.visibility = 'visible';
+  }
+  // 回车登录
+  document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  document.getElementById('l-user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('l-pass').focus(); });
+});
+</script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   主题变量系统
+   支持三套内置主题 + 用户自定义
+═══════════════════════════════════════════════════════ */
+
+/* 默认主题：暗黑科技 */
+:root {
+  --theme-name: 'dark';
+  /* 背景层 */
+  --bg-base:        #0d1117;
+  --bg-base-2:      #0f1923;
+  --bg-surface:     #161b22;
+  --bg-surface-2:   #13181f;
+  --bg-banner:      #0d2137;
+  --bg-banner-2:    #112240;
+  --bg-tab:         #0d1117;
+  --bg-matrix-even: #161b22;
+  --bg-matrix-odd:  #0d1117;
+  --bg-matrix-head: #161b22;
+  --bg-center:      #0d2137;
+  --bg-center-2:    #112d4e;
+  /* 边框 */
+  --border-main:    #21262d;
+  --border-banner:  #1f3a5f;
+  --border-accent:  #1f6feb;
+  /* 文字 */
+  --text-primary:   #e6edf3;
+  --text-secondary: #c9d1d9;
+  --text-muted:     #8b949e;
+  --text-faint:     #484f58;
+  --text-label:     #6e7681;
+  /* 强调色 */
+  --accent-blue:    #58a6ff;
+  --accent-blue-2:  #79c0ff;
+  --accent-blue-3:  #1f6feb;
+  /* 标签背景透明度 */
+  --tag-alpha: 0.15;
+  /* 卡片 hover shadow */
+  --card-shadow: rgba(0,0,0,0.4);
+  /* 内容区背景 */
+  --page-bg: transparent;
+  /* 滚动条 */
+  --scroll-thumb: #30363d;
+  --scroll-track: #161b22;
+}
+
+/* 主题：亮白简洁 */
+[data-theme="light"] {
+  --bg-base:        #f6f8fa;
+  --bg-base-2:      #eef1f5;
+  --bg-surface:     #ffffff;
+  --bg-surface-2:   #f0f4f8;
+  --bg-banner:      #dce8f5;
+  --bg-banner-2:    #c8dff0;
+  --bg-tab:         #ffffff;
+  --bg-matrix-even: #f6f8fa;
+  --bg-matrix-odd:  #ffffff;
+  --bg-matrix-head: #eef1f5;
+  --bg-center:      #e0eefc;
+  --bg-center-2:    #cce0f5;
+  --border-main:    #d0d7de;
+  --border-banner:  #a8c8e8;
+  --border-accent:  #0969da;
+  --text-primary:   #1f2328;
+  --text-secondary: #24292f;
+  --text-muted:     #57606a;
+  --text-faint:     #8c959f;
+  --text-label:     #6e7781;
+  --accent-blue:    #0969da;
+  --accent-blue-2:  #0550ae;
+  --accent-blue-3:  #1f6feb;
+  --tag-alpha: 0.12;
+  --card-shadow: rgba(0,0,0,0.12);
+  --page-bg: #f6f8fa;
+  --scroll-thumb: #d0d7de;
+  --scroll-track: #eef1f5;
+}
+
+/* 主题：商务蓝 */
+[data-theme="corporate"] {
+  --bg-base:        #0a1628;
+  --bg-base-2:      #0c1e36;
+  --bg-surface:     #0f2040;
+  --bg-surface-2:   #0d1b32;
+  --bg-banner:      #071020;
+  --bg-banner-2:    #091428;
+  --bg-tab:         #0a1628;
+  --bg-matrix-even: #0f2040;
+  --bg-matrix-odd:  #0a1628;
+  --bg-matrix-head: #0f2040;
+  --bg-center:      #071020;
+  --bg-center-2:    #0c1e36;
+  --border-main:    #1a3a6e;
+  --border-banner:  #2050a0;
+  --border-accent:  #2979ff;
+  --text-primary:   #e8f0fe;
+  --text-secondary: #c5d3f0;
+  --text-muted:     #8ba3c8;
+  --text-faint:     #4a6080;
+  --text-label:     #6a88aa;
+  --accent-blue:    #4d9fff;
+  --accent-blue-2:  #82c0ff;
+  --accent-blue-3:  #2979ff;
+  --tag-alpha: 0.18;
+  --card-shadow: rgba(0,0,30,0.5);
+  --page-bg: transparent;
+  --scroll-thumb: #1a3a6e;
+  --scroll-track: #0a1628;
+}
+
+/* ─── 主题切换器面板 ─── */
+#theme-panel {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+#theme-toggle-btn {
+  background: var(--border-accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 8px;
+  writing-mode: vertical-rl;
+  letter-spacing: 1.5px;
+  border-radius: 8px 0 0 8px;
+  box-shadow: -2px 0 12px rgba(0,0,0,0.3);
+  transition: background .2s;
+  white-space: nowrap;
+}
+#theme-toggle-btn:hover { background: var(--accent-blue); }
+
+#theme-drawer {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-main);
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.35);
+  padding: 18px 16px;
+  width: 240px;
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+#theme-drawer.open { display: flex; }
+
+.td-section { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+
+/* 主题快捷按钮 */
+.theme-presets { display: flex; gap: 6px; }
+.theme-preset-btn {
+  flex: 1; padding: 7px 4px; border: 1.5px solid var(--border-main);
+  border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;
+  text-align: center; transition: all .15s;
+  background: var(--bg-surface-2); color: var(--text-secondary);
+}
+.theme-preset-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.theme-preset-btn.active { border-color: var(--accent-blue); background: var(--accent-blue); color: #fff; }
+
+/* 颜色自定义区 */
+.color-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.color-row label { font-size: 11px; color: var(--text-muted); flex: 1; }
+.color-row input[type=color] {
+  width: 32px; height: 24px; border: 1px solid var(--border-main);
+  border-radius: 4px; cursor: pointer; background: none; padding: 1px;
+}
+
+/* 字体大小 */
+.font-row { display: flex; align-items: center; gap: 8px; }
+.font-row label { font-size: 11px; color: var(--text-muted); }
+.font-row input[type=range] { flex: 1; accent-color: var(--accent-blue); }
+.font-row span { font-size: 11px; color: var(--accent-blue); min-width: 28px; text-align: right; }
+
+/* 重置按钮 */
+.td-reset-btn {
+  width: 100%; padding: 7px; border: 1px solid var(--border-main);
+  border-radius: 6px; background: transparent; color: var(--text-muted);
+  font-size: 11px; cursor: pointer; transition: all .15s;
+}
+.td-reset-btn:hover { border-color: #f85149; color: #f85149; }
+
+/* 自定义CSS开关 */
+.td-custom-area textarea {
+  width: 100%; height: 80px; resize: vertical;
+  background: var(--bg-base); border: 1px solid var(--border-main);
+  border-radius: 6px; color: var(--text-secondary); font-size: 10px;
+  padding: 6px 8px; font-family: 'Cascadia Code', 'Fira Code', monospace;
+  line-height: 1.5;
+}
+.td-custom-area textarea::placeholder { color: var(--text-faint); }
+.td-apply-btn {
+  width: 100%; padding: 7px; margin-top: 6px;
+  background: var(--accent-blue-3); color: #fff;
+  border: none; border-radius: 6px; font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: background .15s;
+}
+.td-apply-btn:hover { background: var(--accent-blue); }
+
+/* ─── 滚动条美化 ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--scroll-track); }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, var(--bg-base) 0%, var(--bg-base-2) 40%, var(--bg-base) 100%);
+  min-height: 100vh;
+  color: var(--text-secondary);
+  transition: background .3s, color .3s;
+}
+
+/* ─── 顶部 Banner ─── */
+.banner {
+  background: linear-gradient(90deg, var(--bg-banner) 0%, var(--bg-banner-2) 50%, var(--bg-banner) 100%);
+  border-bottom: 1px solid var(--border-banner);
+  padding: 22px 40px 18px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: background .3s, border-color .3s;
+}
+.banner::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(56,139,253,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.banner h1 { font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: 1px; }
+.banner p { font-size: 12px; color: var(--text-muted); margin-top: 5px; letter-spacing: .5px; }
+.banner-stats { display: flex; justify-content: center; gap: 36px; margin-top: 14px; }
+.bstat { text-align: center; }
+.bstat-num { font-size: 24px; font-weight: 800; color: var(--accent-blue); }
+.bstat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* ─── Tab 导航 ─── */
+.tabs {
+  display: flex;
+  background: var(--bg-tab);
+  border-bottom: 1px solid var(--border-main);
+  padding: 0 32px;
+  transition: background .3s;
+}
+.tab {
+  padding: 13px 28px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .2s;
+  letter-spacing: .3px;
+}
+.tab:hover { color: var(--accent-blue); }
+.tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+
+/* ─── 页面区域 ─── */
+.page { display: none; padding: 28px 32px; background: var(--page-bg); }
+.page.active { display: block; }
+
+/* ─── 分区标题 ─── */
+.section-title {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin: 28px 0 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::before { content: ''; display: block; width: 3px; height: 14px; background: var(--accent-blue); border-radius: 2px; }
+
+/* ─── 图例 ─── */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  justify-content: center;
+  background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: 8px;
+  padding: 12px 20px; margin-bottom: 24px;
+  transition: background .3s;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+.ldot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ─── 核心平台 ─── */
+.center-platform {
+  background: linear-gradient(135deg, var(--bg-center) 0%, var(--bg-center-2) 100%);
+  border: 1.5px solid var(--border-accent);
+  border-radius: 14px;
+  padding: 20px 32px;
+  text-align: center;
+  margin: 0 auto 28px;
+  max-width: 680px;
+  box-shadow: 0 0 48px rgba(31,111,235,0.2), 0 2px 16px var(--card-shadow);
+  position: relative;
+  transition: background .3s;
+}
+.center-platform::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--border-accent), var(--accent-blue), var(--border-accent), transparent);
+}
+.center-platform h2 { font-size: 17px; font-weight: 800; color: var(--accent-blue-2); letter-spacing: .5px; }
+.center-platform p { font-size: 11px; color: var(--accent-blue); margin-top: 4px; }
+.platform-tags { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-top: 12px; }
+.ptag {
+  background: rgba(31,111,235,0.15); border: 1px solid rgba(31,111,235,0.4);
+  color: var(--accent-blue-2); font-size: 11px; border-radius: 20px; padding: 3px 12px;
+}
+
+/* ─── 单位卡片 ─── */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+.unit-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  padding: 15px 18px;
+  transition: transform .15s, border-color .15s, box-shadow .15s, background .3s;
+  position: relative; overflow: hidden;
+}
+.unit-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-accent);
+  box-shadow: 0 6px 24px var(--card-shadow);
+}
+.unit-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.unit-card.c-blue::before   { background: linear-gradient(90deg, #1f6feb, #58a6ff); }
+.unit-card.c-green::before  { background: linear-gradient(90deg, #2ea043, #3fb950); }
+.unit-card.c-purple::before { background: linear-gradient(90deg, #6e40c9, #a371f7); }
+.unit-card.c-orange::before { background: linear-gradient(90deg, #9e6a03, #f0883e); }
+.unit-card.c-teal::before   { background: linear-gradient(90deg, #1a7f64, #39d353); }
+.unit-card.c-red::before    { background: linear-gradient(90deg, #b62324, #f85149); }
+.unit-card.c-cyan::before   { background: linear-gradient(90deg, #0e7490, #22d3ee); }
+
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.card-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.card-sys { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.card-ver { font-size: 10px; color: var(--text-faint); flex-shrink: 0; }
+
+.itags { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.itag { font-size: 10px; font-weight: 600; border-radius: 4px; padding: 2px 7px; }
+.it-sso    { background: rgba(88,166,255,.12);  color: #58a6ff;  border: 1px solid rgba(88,166,255,.3); }
+.it-todo   { background: rgba(63,185,80,.12);   color: #3fb950;  border: 1px solid rgba(63,185,80,.3); }
+.it-trig   { background: rgba(240,136,62,.12);  color: #f0883e;  border: 1px solid rgba(240,136,62,.3); }
+.it-ledger { background: rgba(163,113,247,.12); color: #a371f7;  border: 1px solid rgba(163,113,247,.3); }
+.it-perf   { background: rgba(255,215,0,.10);   color: #e3b341;  border: 1px solid rgba(227,179,65,.3); }
+.it-risk   { background: rgba(248,81,73,.12);   color: #f85149;  border: 1px solid rgba(248,81,73,.3); }
+.it-sign   { background: rgba(34,211,238,.10);  color: #22d3ee;  border: 1px solid rgba(34,211,238,.3); }
+.it-org    { background: rgba(57,211,83,.10);   color: #39d353;  border: 1px solid rgba(57,211,83,.3); }
+
+.card-body { border-top: 1px solid var(--border-main); padding-top: 9px; margin-top: 6px; }
+.dr { display: flex; gap: 8px; font-size: 11px; margin-bottom: 4px; }
+.dr .lbl { color: var(--text-label); min-width: 56px; flex-shrink: 0; }
+.dr .val { color: var(--text-secondary); line-height: 1.5; }
+
+/* ─── 矩阵 ─── */
+.matrix-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border-main); }
+.mx-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.mx-table th {
+  background: var(--bg-matrix-head); color: var(--text-muted); padding: 10px 8px;
+  border: 1px solid var(--border-main); font-weight: 700;
+  position: sticky; top: 0; z-index: 2; white-space: nowrap;
+  text-align: center;
+}
+.mx-table th.th-name { text-align: left; min-width: 120px; left: 0; z-index: 3; }
+.mx-table td { padding: 8px 10px; border: 1px solid var(--border-main); text-align: center; vertical-align: top; }
+.mx-table tr:nth-child(even) td { background: var(--bg-matrix-even); }
+.mx-table tr:nth-child(odd) td { background: var(--bg-matrix-odd); }
+.mx-table td.td-name {
+  text-align: left; background: var(--bg-surface-2) !important;
+  font-weight: 700; color: var(--text-primary); white-space: nowrap;
+  position: sticky; left: 0; z-index: 1;
+  border-right: 2px solid var(--border-main);
+}
+.mx-table td.td-sys { color: var(--text-muted); font-size: 10px; text-align: left; }
+.mx-sep td { background: var(--bg-matrix-odd) !important; border-top: 2px solid var(--border-main) !important; }
+.mx-sep td.td-cat {
+  font-size: 10px; font-weight: 700; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 1px;
+  text-align: left; padding: 6px 10px;
+  background: var(--bg-matrix-odd) !important;
+}
+
+/* 矩阵内容单元格 */
+.mc { font-size: 11px; line-height: 1.4; text-align: left; padding: 2px 0; }
+.mc-yes { color: #3fb950; font-weight: 600; }
+.mc-part { color: #e3b341; font-weight: 600; }
+.mc-no { color: var(--text-faint); }
+.mc-detail { color: var(--text-muted); font-size: 10px; font-weight: 400; display: block; margin-top: 2px; }
+
+/* ─── 流程图 ─── */
+.flow-wrap {
+  background: var(--bg-surface); border: 1px solid var(--border-main); border-radius: 12px;
+  padding: 28px 24px; overflow-x: auto; position: relative;
+  transition: background .3s;
+}
+.flow-header { text-align: center; margin-bottom: 28px; }
+.flow-header h3 { font-size: 15px; font-weight: 700; color: var(--accent-blue-2); }
+.flow-header p { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* SVG diagram */
+svg text { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- ═══ 登录遮罩 ═══ -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="licon">🔐</span>
+      <h2>浙江省机电集团<br>合同数字化平台</h2>
+      <p>系统集成全景图 v2.0 · 内部访问</p>
+    </div>
+    <div class="login-field">
+      <label>用户名</label>
+      <input type="text" id="l-user" placeholder="请输入用户名" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>密码</label>
+      <input type="password" id="l-pass" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div id="l-err" class="login-err"></div>
+    <div class="login-footer">本页面仅限授权人员访问 · 请勿外传链接</div>
+  </div>
+</div>
+
+<!-- 退出登录 -->
+<button class="logout-btn" id="logout-bar" style="display:none;" onclick="doLogout()">⎋ 退出登录</button>
+
+<!-- ═══ 主题切换器 ═══ -->
+<div id="theme-panel">
+  <div id="theme-drawer">
+    <div>
+      <div class="td-section">切换主题</div>
+      <div class="theme-presets">
+        <button class="theme-preset-btn active" data-theme="dark"  onclick="applyTheme('dark',this)"  title="暗黑科技">🌑 暗黑</button>
+        <button class="theme-preset-btn"        data-theme="light" onclick="applyTheme('light',this)" title="亮白简洁">☀️ 亮白</button>
+        <button class="theme-preset-btn"        data-theme="corporate" onclick="applyTheme('corporate',this)" title="商务蓝">🔵 商务</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="td-section">自定义颜色</div>
+      <div class="color-row">
+        <label>主背景色</label>
+        <input type="color" id="cu-bg-base" value="#0d1117" oninput="setVar('--bg-base',this.value);setVar('--bg-base-2',this.value);">
+      </div>
+      <div class="color-row">
+        <label>卡片背景色</label>
+        <input type="color" id="cu-bg-surface" value="#161b22" oninput="setVar('--bg-surface',this.value);setVar('--bg-surface-2',this.value);">
+      </div>
+      <div class="color-row">
+        <label>强调色 (蓝)</label>
+        <input type="color" id="cu-accent" value="#58a6ff" oninput="setVar('--accent-blue',this.value);setVar('--accent-blue-2',this.value);setVar('--border-accent',this.value);">
+      </div>
+      <div class="color-row">
+        <label>主文字色</label>
+        <input type="color" id="cu-text-primary" value="#e6edf3" oninput="setVar('--text-primary',this.value);setVar('--text-secondary',this.value);">
+      </div>
+      <div class="color-row">
+        <label>边框颜色</label>
+        <input type="color" id="cu-border" value="#21262d" oninput="setVar('--border-main',this.value);">
+      </div>
+    </div>
+
+    <div>
+      <div class="td-section">字体大小</div>
+      <div class="font-row">
+        <label>全局缩放</label>
+        <input type="range" id="cu-fontsize" min="80" max="130" value="100"
+          oninput="document.documentElement.style.fontSize=this.value+'%';document.getElementById('fs-val').textContent=this.value+'%';try{localStorage.setItem('cim-fontsize',this.value)}catch(e){}">
+        <span id="fs-val">100%</span>
+      </div>
+    </div>
+
+    <div class="td-custom-area">
+      <div class="td-section">自定义 CSS</div>
+      <textarea id="cu-css" placeholder="/* 在此输入自定义CSS */&#10;.banner { opacity: 0.9; }"></textarea>
+      <button class="td-apply-btn" onclick="applyCustomCSS()">应用自定义 CSS</button>
+    </div>
+
+    <button class="td-reset-btn" onclick="resetTheme()">↺ 重置为默认</button>
+  </div>
+  <button id="theme-toggle-btn" onclick="toggleDrawer()">🎨 主题</button>
+</div>
+<style id="custom-css-style"></style>
+
+<!-- ═══ Banner ═══ -->
+<div class="banner">
+  <h1>浙江省机电集团合同数字化平台 · 系统集成全景图</h1>
+  <p>A8 8.2sp1 集团版 · MySQL · 合同全生命周期管理中枢</p>
+  <div class="banner-stats">
+    <div class="bstat"><div class="bstat-num">13</div><div class="bstat-label">成员单位/对接方</div></div>
+    <div class="bstat"><div class="bstat-num">15+</div><div class="bstat-label">对接系统</div></div>
+    <div class="bstat"><div class="bstat-num">7</div><div class="bstat-label">集成能力类型</div></div>
+    <div class="bstat"><div class="bstat-num">3</div><div class="bstat-label">建设阶段</div></div>
+  </div>
+</div>
+
+<!-- ═══ Tab ═══ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview')">系统集成全景</div>
+  <div class="tab" onclick="switchTab('matrix')">集成矩阵</div>
+  <div class="tab" onclick="switchTab('flow')">集成逻辑图</div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  PAGE 1: 系统集成全景                 -->
+<!-- ══════════════════════════════════════ -->
+<div id="page-overview" class="page active">
+
+  <!-- 图例 -->
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:#58a6ff"></div>单点登录 SSO</div>
+    <div class="legend-item"><div class="ldot" style="background:#3fb950"></div>待办集成</div>
+    <div class="legend-item"><div class="ldot" style="background:#f0883e"></div>触发起草</div>
+    <div class="legend-item"><div class="ldot" style="background:#a371f7"></div>台账同步</div>
+    <div class="legend-item"><div class="ldot" style="background:#e3b341"></div>履约数据</div>
+    <div class="legend-item"><div class="ldot" style="background:#f85149"></div>风险管理</div>
+    <div class="legend-item"><div class="ldot" style="background:#22d3ee"></div>电子签章 / 智能审核</div>
+    <div class="legend-item"><div class="ldot" style="background:#39d353"></div>组织 / 客商同步</div>
+  </div>
+
+  <!-- 核心平台 -->
+  <div class="center-platform">
+    <h2>🏛 浙江省机电集团合同数字化平台</h2>
+    <p>A8 8.2sp1 集团版 · MySQL · 合同全生命周期管理</p>
+    <div class="platform-tags">
+      <span class="ptag">合同起草</span><span class="ptag">审批流程</span><span class="ptag">合同变更</span>
+      <span class="ptag">履约管理</span><span class="ptag">风险预警</span><span class="ptag">合同归档</span>
+      <span class="ptag">电子签章</span><span class="ptag">客商管理</span>
+    </div>
+  </div>
+
+  <div class="section-title">成员单位 · 业务系统融合集成</div>
+  <div class="cards-grid">
+
+    <!-- 检测所 -->
+    <div class="unit-card c-blue">
+      <div class="card-header">
+        <div><div class="card-name">检测所</div><div class="card-sys">泛微 e-cology 合同系统 · Oracle</div></div>
+        <div class="card-ver">V1.0 · 20251205</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-risk">风险管理</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发方式</span><span class="val">泛微合同到达签署节点 → 推送至集团平台发起审批</span></div>
+        <div class="dr"><span class="lbl">待办推送</span><span class="val">集团平台审批待办 → 推送至泛微待办页签</span></div>
+        <div class="dr"><span class="lbl">台账取回</span><span class="val">集团平台提供接口，检测所系统定时取回合同台账</span></div>
+        <div class="dr"><span class="lbl">风险管理</span><span class="val">风险待办通过集成推送至泛微系统待办</span></div>
+      </div>
+    </div>
+
+    <!-- 机电院 -->
+    <div class="unit-card c-green">
+      <div class="card-header">
+        <div><div class="card-name">机电院</div><div class="card-sys">金慧项目管理系统 · Oracle</div></div>
+        <div class="card-ver">V01 · 20240807</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-perf">履约数据</span><span class="itag it-risk">风险管理</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发方式</span><span class="val">金慧中标后自动推送项目信息，集团平台触发合同起草</span></div>
+        <div class="dr"><span class="lbl">台账同步</span><span class="val">合同台账数据同步回金慧系统（接口调用）</span></div>
+        <div class="dr"><span class="lbl">履约数据</span><span class="val">收付款、开票等履约数据由集团平台接口推送回金慧</span></div>
+        <div class="dr"><span class="lbl">风险预警</span><span class="val">超期未签、未履约风险自动预警，推送至金慧系统</span></div>
+      </div>
+    </div>
+
+    <!-- 京安 -->
+    <div class="unit-card c-purple">
+      <div class="card-header">
+        <div><div class="card-name">京安公司</div><div class="card-sys">红圈项目管理系统 · MySQL</div></div>
+        <div class="card-ver">V02 · 20250912</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-org">客商信息</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发方式</span><span class="val">红圈项目立项后携带项目档案信息进入集团平台起草</span></div>
+        <div class="dr"><span class="lbl">客商同步</span><span class="val">集团平台客商库数据同步至红圈系统</span></div>
+        <div class="dr"><span class="lbl">台账同步</span><span class="val">合同审批完成后台账数据推回红圈系统</span></div>
+        <div class="dr"><span class="lbl">待办集成</span><span class="val">合同审批待办推送至红圈系统待办中心</span></div>
+      </div>
+    </div>
+
+    <!-- 新联 -->
+    <div class="unit-card c-orange">
+      <div class="card-header">
+        <div><div class="card-name">新联公司</div><div class="card-sys">用友NCC财务ERP + 每刻费控系统</div></div>
+        <div class="card-ver">V1.1 · 20250612</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-perf">履约数据</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">三方协同</span><span class="val">NCC（收款/开票/收票）+ 每刻（付款申请）+ 集团平台</span></div>
+        <div class="dr"><span class="lbl">触发起草</span><span class="val">NCC订单完成后携带数据触发集团平台合同起草</span></div>
+        <div class="dr"><span class="lbl">履约数据</span><span class="val">NCC收款/每刻付款数据回写集团平台履约台账</span></div>
+        <div class="dr"><span class="lbl">移动端</span><span class="val">支持移动端待办集成（APP/微信）</span></div>
+      </div>
+    </div>
+
+    <!-- 诺和 -->
+    <div class="unit-card c-blue">
+      <div class="card-header">
+        <div><div class="card-name">诺和公司</div><div class="card-sys">用友U8 业务系统 · MS SQL</div></div>
+        <div class="card-ver">V1.2 · 20241106</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-perf">履约数据</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">合同分类</span><span class="val">直签合同（U8发货触发）/ 框架合同（平台主导）分别处理</span></div>
+        <div class="dr"><span class="lbl">物料视图</span><span class="val">U8物料信息同步至集团平台供合同起草引用</span></div>
+        <div class="dr"><span class="lbl">履约回传</span><span class="val">合同履约状态及收付款数据回写至U8台账</span></div>
+        <div class="dr"><span class="lbl">待办集成</span><span class="val">合同审批流待办推送至U8系统消息中心</span></div>
+      </div>
+    </div>
+
+    <!-- 贸易事业部 -->
+    <div class="unit-card c-teal">
+      <div class="card-header">
+        <div><div class="card-name">贸易事业部</div><div class="card-sys">用友NCC 业财系统 + 期货系统</div></div>
+        <div class="card-ver">V01 · 20240711</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-perf">履约数据</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发起草</span><span class="val">NCC业财系统完成业务后触发集团平台合同起草</span></div>
+        <div class="dr"><span class="lbl">期货联动</span><span class="val">期货系统合同数据与集团平台互通，价格联动更新</span></div>
+        <div class="dr"><span class="lbl">履约数据</span><span class="val">NCC收付款、开票数据回写集团平台履约台账</span></div>
+        <div class="dr"><span class="lbl">移动端</span><span class="val">支持移动端待办集成</span></div>
+      </div>
+    </div>
+
+    <!-- 设备公司 -->
+    <div class="unit-card c-purple">
+      <div class="card-header">
+        <div><div class="card-name">设备公司</div><div class="card-sys">全顺ERP 系统 · MS SQL</div></div>
+        <div class="card-ver">V01 · 20241030</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发方式</span><span class="val">全顺ERP完成订单确认后触发集团平台合同起草</span></div>
+        <div class="dr"><span class="lbl">状态回传</span><span class="val">集团平台合同审批状态双向回传至全顺ERP</span></div>
+        <div class="dr"><span class="lbl">台账同步</span><span class="val">合同台账数据接口定时同步至全顺ERP</span></div>
+      </div>
+    </div>
+
+    <!-- 抟原 -->
+    <div class="unit-card c-orange">
+      <div class="card-header">
+        <div><div class="card-name">抟原公司</div><div class="card-sys">泛微OA + 自建ERP · Oracle</div></div>
+        <div class="card-ver">V01 · 20230925</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发控制</span><span class="val">OA采购请购单完成审批后触发合同起草，通过后解锁采购计划</span></div>
+        <div class="dr"><span class="lbl">单据保护</span><span class="val">合同修改/作废须先验证下游ERP单据（发货/入库/付款）是否存在</span></div>
+        <div class="dr"><span class="lbl">台账同步</span><span class="val">合同台账数据回写至泛微OA及ERP系统</span></div>
+      </div>
+    </div>
+
+    <!-- 军工 -->
+    <div class="unit-card c-red">
+      <div class="card-header">
+        <div><div class="card-name">军工集团</div><div class="card-sys">致远OA · Oracle</div></div>
+        <div class="card-ver">V01 · 20230903</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发方式</span><span class="val">致远OA采购申请单审批通过后触发合同起草</span></div>
+        <div class="dr"><span class="lbl">组织对接</span><span class="val">致远OA与集团平台组织架构手动维护对照关系</span></div>
+        <div class="dr"><span class="lbl">台账同步</span><span class="val">合同台账数据接口同步至致远OA</span></div>
+      </div>
+    </div>
+
+    <!-- 华瑞 -->
+    <div class="unit-card c-cyan">
+      <div class="card-header">
+        <div><div class="card-name">华瑞公司</div><div class="card-sys">自建OA（协同办公）+ ERP · Oracle</div></div>
+        <div class="card-ver">V02 · 20230717</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sso">单点登录</span><span class="itag it-todo">待办集成</span>
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-perf">履约数据</span><span class="itag it-risk">风险管理</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">前置审批</span><span class="val">华瑞OA完成采购申请/方式/定标审批并下载PDF附件</span></div>
+        <div class="dr"><span class="lbl">触发起草</span><span class="val">通过SSO进入集团平台发起合同起草，待办推回华瑞OA</span></div>
+        <div class="dr"><span class="lbl">履约数据</span><span class="val">华瑞ERP/财务通过接口将收付款数据推送至集团平台</span></div>
+        <div class="dr"><span class="lbl">C929关联</span><span class="val">付款信息须与C929飞机项目科目关联（特殊需求）</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-title">集团级平台 · 横向集成对接</div>
+  <div class="cards-grid">
+
+    <!-- 招采平台 -->
+    <div class="unit-card c-cyan">
+      <div class="card-header">
+        <div><div class="card-name">集团招采平台</div><div class="card-sys">招标采购系统（集团自建）</div></div>
+        <div class="card-ver">V01 · 20230828</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-trig">触发起草</span><span class="itag it-ledger">台账同步</span>
+        <span class="itag it-risk">超期预警</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">触发逻辑</span><span class="val">招标完成/定标后自动推送中标信息触发合同起草</span></div>
+        <div class="dr"><span class="lbl">风险预警</span><span class="val">超期未签（7日）/ 超期未履约 自动触发风险上报流程</span></div>
+        <div class="dr"><span class="lbl">台账回传</span><span class="val">合同审批状态回传招采平台，形成完整招采合同闭环</span></div>
+      </div>
+    </div>
+
+    <!-- 集团OA -->
+    <div class="unit-card c-blue">
+      <div class="card-header">
+        <div><div class="card-name">集团OA市场营销</div><div class="card-sys">A8 集团OA · 市场营销台账模块</div></div>
+        <div class="card-ver">V1.1 · 20230911</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-ledger">台账同步</span><span class="itag it-perf">履约数据</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">填报提醒</span><span class="val">每周五9:00自动触发子公司市场营销台账填报提醒</span></div>
+        <div class="dr"><span class="lbl">同步时机</span><span class="val">每周日00:00 自动同步本周合同执行情况至集团OA</span></div>
+        <div class="dr"><span class="lbl">数据范围</span><span class="val">合同签订量、履约率、回款率等核心经营指标</span></div>
+      </div>
+    </div>
+
+    <!-- 法大大/NC/运达 -->
+    <div class="unit-card c-purple">
+      <div class="card-header">
+        <div><div class="card-name">法大大 · 集团NC · 运达CRM</div><div class="card-sys">电子签章 + 财务NC + 销售CRM</div></div>
+        <div class="card-ver">20240925</div>
+      </div>
+      <div class="itags">
+        <span class="itag it-sign">电子签章</span><span class="itag it-sign">智能审核</span>
+        <span class="itag it-org">客商同步</span><span class="itag it-ledger">销售台账</span>
+      </div>
+      <div class="card-body">
+        <div class="dr"><span class="lbl">法大大</span><span class="val">合同文本比对+智能审核，差异高亮标注，支持批量电子签章</span></div>
+        <div class="dr"><span class="lbl">集团NC</span><span class="val">财务NC客商库与集团平台双向同步，统一供应商档案</span></div>
+        <div class="dr"><span class="lbl">运达CRM</span><span class="val">CRM销售订单信息同步至集团平台，触发采购/销售合同起草</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  PAGE 2: 集成矩阵                     -->
+<!-- ══════════════════════════════════════ -->
+<div id="page-matrix" class="page">
+  <div style="text-align:center; margin-bottom:20px;">
+    <div style="font-size:18px; font-weight:800; color:var(--text-primary);">集成能力矩阵</div>
+    <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">各成员单位与集团合同平台的集成功能明细</div>
+  </div>
+
+  <div class="matrix-wrap">
+    <table class="mx-table">
+      <thead>
+        <tr>
+          <th class="th-name" rowspan="2">成员单位</th>
+          <th rowspan="2">对接系统<br>及版本</th>
+          <th colspan="2">认证层</th>
+          <th colspan="3">触发 / 入口层</th>
+          <th colspan="3">数据回传层</th>
+          <th colspan="2">风控 / 预警层</th>
+          <th colspan="2">扩展能力</th>
+        </tr>
+        <tr>
+          <th style="background:rgba(88,166,255,0.12); color:#58a6ff;">单点登录<br>SSO</th>
+          <th style="background:rgba(88,166,255,0.12); color:#58a6ff;">组织架构<br>同步</th>
+          <th style="background:rgba(63,185,80,0.12); color:#3fb950;">触发<br>起草</th>
+          <th style="background:rgba(63,185,80,0.12); color:#3fb950;">前置<br>审批控制</th>
+          <th style="background:rgba(63,185,80,0.12); color:#3fb950;">待办<br>集成</th>
+          <th style="background:rgba(163,113,247,0.12); color:#a371f7;">合同台账<br>回传</th>
+          <th style="background:rgba(163,113,247,0.12); color:#a371f7;">履约数据<br>推送</th>
+          <th style="background:rgba(163,113,247,0.12); color:#a371f7;">状态<br>双向回传</th>
+          <th style="background:rgba(248,81,73,0.12); color:#f85149;">超期<br>预警</th>
+          <th style="background:rgba(248,81,73,0.12); color:#f85149;">风险<br>台账集成</th>
+          <th style="background:rgba(34,211,238,0.12); color:#22d3ee;">移动端<br>待办</th>
+          <th style="background:rgba(34,211,238,0.12); color:#22d3ee;">电子签章/<br>智能审核</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 分组：成员单位 -->
+        <tr class="mx-sep">
+          <td class="td-cat" colspan="15">成员单位（业务系统融合集成）</td>
+        </tr>
+
+        <tr>
+          <td class="td-name">检测所<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">泛微 e-cology</span></td>
+          <td class="td-sys">A8 8.2sp1<br>泛微OA · Oracle</td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">PC端SSO跳转</span></td>
+          <td><span class="mc mc-part">△ 手动</span><span class="mc-detail">手动维护对照表</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">泛微签署节点触发</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批待办推至泛微</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">接口定时取回</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批状态回传</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">风险待办推至泛微</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">机电院<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">金慧PM系统</span></td>
+          <td class="td-sys">A8 8.2sp1<br>金慧 · Oracle</td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">PC端SSO跳转</span></td>
+          <td><span class="mc mc-part">△ 手动</span><span class="mc-detail">手动维护对照表</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">中标后自动推送</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批待办推至金慧</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">接口同步回金慧</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">收付款/开票回传</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">合同状态双向</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">超期未签预警</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">推送至金慧</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">京安公司<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">红圈PM系统</span></td>
+          <td class="td-sys">A8 8.2sp1<br>红圈 · MySQL</td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">PC端SSO跳转</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">客商库双向同步</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">项目立项后触发</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批待办推至红圈</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">台账数据推回红圈</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批状态回传</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">新联公司<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">NCC + 每刻</span></td>
+          <td class="td-sys">A8 8.2sp1<br>NCC + 每刻 · Oracle</td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">PC/移动端SSO</span></td>
+          <td><span class="mc mc-part">△ 手动</span><span class="mc-detail">手动维护对照表</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">NCC订单完成触发</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批待办推至NCC</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">接口推回NCC</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">NCC收款+每刻付款</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批状态回传</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">APP/微信移动端</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">诺和公司<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">用友U8</span></td>
+          <td class="td-sys">A8 8.2sp1<br>U8 · MS SQL</td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">PC端SSO跳转</span></td>
+          <td><span class="mc mc-part">△ 手动</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">U8发货/框架合同分类触发</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">待办推至U8消息中心</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">接口同步回U8</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">收付款数据回写U8</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">物料视图同步</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">贸易事业部<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">NCC + 期货系统</span></td>
+          <td class="td-sys">A8 8.2sp1<br>NCC + 期货 · Oracle</td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">PC/移动端SSO</span></td>
+          <td><span class="mc mc-part">△ 手动</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">NCC业务完成触发</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">待办推至NCC</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">接口回传NCC</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">NCC收付款+期货价格联动</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">状态双向</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">移动端待办</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">设备公司<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">全顺ERP</span></td>
+          <td class="td-sys">A8 8.2sp1<br>全顺ERP · MS SQL</td>
+          <td><span class="mc mc-yes">✓ 支持</span></td>
+          <td><span class="mc mc-part">△ 手动</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">ERP订单确认后触发</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">待办推至全顺ERP</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">定时同步台账</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批状态双向回传</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">抟原公司<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">泛微OA + ERP</span></td>
+          <td class="td-sys">A8 8.2sp1<br>泛微OA + ERP · Oracle</td>
+          <td><span class="mc mc-yes">✓ 支持</span></td>
+          <td><span class="mc mc-part">△ 手动</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">OA请购单审批后触发</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">锁定/解锁采购计划；下游单据变更保护</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">待办推至泛微OA</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">台账回写泛微+ERP</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">状态双向</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">军工集团<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">致远OA</span></td>
+          <td class="td-sys">A8 8.2sp1<br>致远OA · Oracle</td>
+          <td><span class="mc mc-yes">✓ 支持</span></td>
+          <td><span class="mc mc-part">△ 手动</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">OA采购申请单触发</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">待办推至致远OA</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">接口同步至致远</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">审批状态回传</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">华瑞公司<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">自建OA + ERP</span></td>
+          <td class="td-sys">A8 8.2sp1<br>自建OA · Oracle<br>ERP（待招标）</td>
+          <td><span class="mc mc-yes">✓ 支持</span></td>
+          <td><span class="mc mc-part">△ 手动</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">OA前置审批完成后触发</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">采购申请/方式/定标前置审批；C929科目关联控制</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">待办推至华瑞OA</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">含变更记录增量取回</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">ERP收付款→集团平台</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">状态双向</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">风险待办推至华瑞OA</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <!-- 分组：集团级 -->
+        <tr class="mx-sep">
+          <td class="td-cat" colspan="15">集团级平台（横向集成对接）</td>
+        </tr>
+
+        <tr>
+          <td class="td-name">集团招采平台<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">招采系统</span></td>
+          <td class="td-sys">A8 8.2sp1<br>集团自建招采</td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">定标后推送触发起草</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">合同状态回传招采</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">状态回传招采</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">超7日未签自动预警</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">超期未履约预警</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">集团OA营销<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">A8 集团OA</span></td>
+          <td class="td-sys">A8 8.2sp1<br>集团OA</td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">每周日00:00定时同步</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">签订量/履约率/回款率</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+        </tr>
+
+        <tr>
+          <td class="td-name">法大大/NC/运达<br><span style="font-size:10px;font-weight:400;color:var(--text-muted);">签章+财务+CRM</span></td>
+          <td class="td-sys">法大大SaaS<br>集团NC<br>运达CRM</td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-part">△ 运达CRM</span><span class="mc-detail">销售订单触发起草</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">客商库双向同步（NC）</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-no">—</span></td>
+          <td><span class="mc mc-yes">✓ 支持</span><span class="mc-detail">文本比对+智能审核+批量电子签章</span></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:10px; font-size:11px; color:var(--text-faint);">✓ 已实现 &nbsp;△ 部分/特殊条件实现 &nbsp;— 未涉及</p>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!--  PAGE 3: 集成逻辑图（统一架构图）     -->
+<!-- ══════════════════════════════════════ -->
+<div id="page-flow" class="page">
+  <div style="text-align:center; margin-bottom:20px;">
+    <div style="font-size:18px; font-weight:800; color:var(--text-primary);">合同管理系统 · 统一集成逻辑图</div>
+    <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">展示所有成员单位与集团合同平台的完整数据流向</div>
+  </div>
+
+  <div class="flow-wrap">
+    <svg viewBox="0 0 1400 980" xmlns="http://www.w3.org/2000/svg" style="width:100%; min-width:1100px; display:block;">
+      <defs>
+        <!-- 箭头 -->
+        <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#1f6feb" opacity="0.8"/>
+        </marker>
+        <marker id="arr-green" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#3fb950" opacity="0.8"/>
+        </marker>
+        <marker id="arr-purple" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#a371f7" opacity="0.8"/>
+        </marker>
+        <marker id="arr-orange" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#f0883e" opacity="0.8"/>
+        </marker>
+        <marker id="arr-red" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#f85149" opacity="0.8"/>
+        </marker>
+        <marker id="arr-cyan" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#22d3ee" opacity="0.8"/>
+        </marker>
+        <marker id="arr-gray" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#484f58" opacity="0.8"/>
+        </marker>
+        <!-- 渐变 -->
+        <linearGradient id="grad-center" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#0d2137"/>
+          <stop offset="100%" style="stop-color:#112d4e"/>
+        </linearGradient>
+        <linearGradient id="grad-left" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#161b22"/>
+          <stop offset="100%" style="stop-color:#1a2030"/>
+        </linearGradient>
+        <linearGradient id="grad-right" x1="100%" y1="0%" x2="0%" y2="0%">
+          <stop offset="0%" style="stop-color:#161b22"/>
+          <stop offset="100%" style="stop-color:#1a2030"/>
+        </linearGradient>
+        <linearGradient id="grad-top" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" style="stop-color:#161b22"/>
+          <stop offset="100%" style="stop-color:#1a2030"/>
+        </linearGradient>
+        <linearGradient id="grad-bottom" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" style="stop-color:#161b22"/>
+          <stop offset="100%" style="stop-color:#1a2030"/>
+        </linearGradient>
+      </defs>
+
+      <!-- ── 背景分区标签 ── -->
+      <rect x="10" y="10" width="400" height="960" rx="10" fill="#0a1520" opacity="0.5" stroke="#1f3a5f" stroke-width="1"/>
+      <text x="210" y="35" text-anchor="middle" fill="#1f6feb" font-size="12" font-weight="700" opacity="0.7">成员单位（左侧·业务系统）</text>
+
+      <rect x="990" y="10" width="400" height="960" rx="10" fill="#0a1520" opacity="0.5" stroke="#1f3a5f" stroke-width="1"/>
+      <text x="1190" y="35" text-anchor="middle" fill="#1f6feb" font-size="12" font-weight="700" opacity="0.7">成员单位（右侧·业务系统）</text>
+
+      <rect x="420" y="10" width="560" height="960" rx="10" fill="#0d1b30" opacity="0.4" stroke="#1f6feb" stroke-width="1.5"/>
+      <text x="700" y="35" text-anchor="middle" fill="#58a6ff" font-size="13" font-weight="800">集团合同数字化平台（核心）</text>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- 核心平台主体 -->
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- 中心核心框 -->
+      <rect x="460" y="60" width="480" height="120" rx="12" fill="url(#grad-center)" stroke="#1f6feb" stroke-width="2"/>
+      <rect x="460" y="60" width="480" height="3" rx="1.5" fill="url(#grad-center)" opacity="0"/>
+      <line x1="460" y1="60" x2="940" y2="60" stroke="#58a6ff" stroke-width="2" opacity="0.6"/>
+      <text x="700" y="90" text-anchor="middle" fill="#79c0ff" font-size="16" font-weight="800">浙江省机电集团</text>
+      <text x="700" y="110" text-anchor="middle" fill="#79c0ff" font-size="15" font-weight="800">合同数字化平台</text>
+      <text x="700" y="130" text-anchor="middle" fill="#58a6ff" font-size="11">A8 8.2sp1 集团版 · MySQL</text>
+      <text x="700" y="148" text-anchor="middle" fill="#484f58" font-size="10">合同起草 · 审批 · 变更 · 归档 · 履约 · 风险 · 签章</text>
+
+      <!-- 平台内部功能模块 -->
+      <!-- 功能区标题 -->
+      <rect x="460" y="200" width="480" height="34" rx="6" fill="#0f2040" stroke="#1f4f8f" stroke-width="1"/>
+      <text x="700" y="222" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="700">平台核心功能模块</text>
+
+      <!-- 功能模块行1 -->
+      <rect x="466" y="242" width="100" height="30" rx="5" fill="rgba(31,111,235,0.15)" stroke="rgba(31,111,235,0.4)" stroke-width="1"/>
+      <text x="516" y="262" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="600">合同起草</text>
+
+      <rect x="574" y="242" width="100" height="30" rx="5" fill="rgba(31,111,235,0.15)" stroke="rgba(31,111,235,0.4)" stroke-width="1"/>
+      <text x="624" y="262" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="600">审批流程</text>
+
+      <rect x="682" y="242" width="100" height="30" rx="5" fill="rgba(31,111,235,0.15)" stroke="rgba(31,111,235,0.4)" stroke-width="1"/>
+      <text x="732" y="262" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="600">合同变更</text>
+
+      <rect x="790" y="242" width="100" height="30" rx="5" fill="rgba(31,111,235,0.15)" stroke="rgba(31,111,235,0.4)" stroke-width="1"/>
+      <text x="840" y="262" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="600">合同归档</text>
+
+      <!-- 功能模块行2 -->
+      <rect x="466" y="280" width="100" height="30" rx="5" fill="rgba(163,113,247,0.12)" stroke="rgba(163,113,247,0.35)" stroke-width="1"/>
+      <text x="516" y="300" text-anchor="middle" fill="#a371f7" font-size="10" font-weight="600">履约管理</text>
+
+      <rect x="574" y="280" width="100" height="30" rx="5" fill="rgba(248,81,73,0.12)" stroke="rgba(248,81,73,0.35)" stroke-width="1"/>
+      <text x="624" y="300" text-anchor="middle" fill="#f85149" font-size="10" font-weight="600">风险预警</text>
+
+      <rect x="682" y="280" width="100" height="30" rx="5" fill="rgba(34,211,238,0.12)" stroke="rgba(34,211,238,0.35)" stroke-width="1"/>
+      <text x="732" y="300" text-anchor="middle" fill="#22d3ee" font-size="10" font-weight="600">电子签章</text>
+
+      <rect x="790" y="280" width="100" height="30" rx="5" fill="rgba(57,211,83,0.12)" stroke="rgba(57,211,83,0.35)" stroke-width="1"/>
+      <text x="840" y="300" text-anchor="middle" fill="#39d353" font-size="10" font-weight="600">客商管理</text>
+
+      <!-- ═══ 集成能力层（中间带） ═══ -->
+      <rect x="460" y="328" width="480" height="28" rx="5" fill="#0f2040" stroke="#1f4f8f" stroke-width="1"/>
+      <text x="700" y="347" text-anchor="middle" fill="#8b949e" font-size="10" font-weight="700">▼ 集成能力层（API / 消息推送 / 定时任务） ▼</text>
+
+      <!-- 集成能力标签 -->
+      <rect x="466" y="364" width="74" height="22" rx="4" fill="rgba(88,166,255,0.12)" stroke="rgba(88,166,255,0.35)" stroke-width="1"/>
+      <text x="503" y="379" text-anchor="middle" fill="#58a6ff" font-size="9" font-weight="600">SSO单点登录</text>
+
+      <rect x="546" y="364" width="74" height="22" rx="4" fill="rgba(63,185,80,0.12)" stroke="rgba(63,185,80,0.35)" stroke-width="1"/>
+      <text x="583" y="379" text-anchor="middle" fill="#3fb950" font-size="9" font-weight="600">待办消息推送</text>
+
+      <rect x="626" y="364" width="74" height="22" rx="4" fill="rgba(240,136,62,0.12)" stroke="rgba(240,136,62,0.35)" stroke-width="1"/>
+      <text x="663" y="379" text-anchor="middle" fill="#f0883e" font-size="9" font-weight="600">触发起草接口</text>
+
+      <rect x="706" y="364" width="74" height="22" rx="4" fill="rgba(163,113,247,0.12)" stroke="rgba(163,113,247,0.35)" stroke-width="1"/>
+      <text x="743" y="379" text-anchor="middle" fill="#a371f7" font-size="9" font-weight="600">台账数据接口</text>
+
+      <rect x="786" y="364" width="74" height="22" rx="4" fill="rgba(248,81,73,0.12)" stroke="rgba(248,81,73,0.35)" stroke-width="1"/>
+      <text x="823" y="379" text-anchor="middle" fill="#f85149" font-size="9" font-weight="600">风险预警推送</text>
+
+      <rect x="866" y="364" width="68" height="22" rx="4" fill="rgba(57,211,83,0.12)" stroke="rgba(57,211,83,0.35)" stroke-width="1"/>
+      <text x="900" y="379" text-anchor="middle" fill="#39d353" font-size="9" font-weight="600">组织/客商同步</text>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- 左侧：成员单位（5个，竖排）                 -->
+      <!-- ═══════════════════════════════════════════ -->
+
+      <!-- 纵坐标参考：第1行y=415, 之后每+110 -->
+
+      <!-- [L1] 检测所 -->
+      <rect x="15" y="410" width="160" height="68" rx="8" fill="url(#grad-left)" stroke="#1f6feb" stroke-width="1.2"/>
+      <rect x="15" y="410" width="3" height="68" rx="1.5" fill="#1f6feb"/>
+      <text x="100" y="430" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">检测所</text>
+      <text x="100" y="446" text-anchor="middle" fill="#8b949e" font-size="9">泛微 e-cology · Oracle</text>
+      <text x="100" y="460" text-anchor="middle" fill="#58a6ff" font-size="8">SSO · 待办 · 触发起草 · 台账 · 风险</text>
+      <text x="100" y="472" text-anchor="middle" fill="#484f58" font-size="8">V1.0 · 20251205</text>
+
+      <!-- [L2] 机电院 -->
+      <rect x="15" y="510" width="160" height="68" rx="8" fill="url(#grad-left)" stroke="#2ea043" stroke-width="1.2"/>
+      <rect x="15" y="510" width="3" height="68" rx="1.5" fill="#2ea043"/>
+      <text x="100" y="530" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">机电院</text>
+      <text x="100" y="546" text-anchor="middle" fill="#8b949e" font-size="9">金慧项目管理 · Oracle</text>
+      <text x="100" y="560" text-anchor="middle" fill="#3fb950" font-size="8">SSO · 待办 · 触发 · 台账 · 履约 · 风险</text>
+      <text x="100" y="572" text-anchor="middle" fill="#484f58" font-size="8">V01 · 20240807</text>
+
+      <!-- [L3] 京安公司 -->
+      <rect x="15" y="610" width="160" height="68" rx="8" fill="url(#grad-left)" stroke="#6e40c9" stroke-width="1.2"/>
+      <rect x="15" y="610" width="3" height="68" rx="1.5" fill="#6e40c9"/>
+      <text x="100" y="630" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">京安公司</text>
+      <text x="100" y="646" text-anchor="middle" fill="#8b949e" font-size="9">红圈项目管理 · MySQL</text>
+      <text x="100" y="660" text-anchor="middle" fill="#a371f7" font-size="8">SSO · 待办 · 触发起草 · 台账 · 客商</text>
+      <text x="100" y="672" text-anchor="middle" fill="#484f58" font-size="8">V02 · 20250912</text>
+
+      <!-- [L4] 新联公司 -->
+      <rect x="15" y="710" width="160" height="68" rx="8" fill="url(#grad-left)" stroke="#9e6a03" stroke-width="1.2"/>
+      <rect x="15" y="710" width="3" height="68" rx="1.5" fill="#f0883e"/>
+      <text x="100" y="730" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">新联公司</text>
+      <text x="100" y="746" text-anchor="middle" fill="#8b949e" font-size="9">NCC + 每刻费控 · Oracle</text>
+      <text x="100" y="760" text-anchor="middle" fill="#f0883e" font-size="8">SSO · 待办 · 触发 · 台账 · 履约 · 移动</text>
+      <text x="100" y="772" text-anchor="middle" fill="#484f58" font-size="8">V1.1 · 20250612</text>
+
+      <!-- [L5] 华瑞公司 -->
+      <rect x="15" y="810" width="160" height="78" rx="8" fill="url(#grad-left)" stroke="#0e7490" stroke-width="1.2"/>
+      <rect x="15" y="810" width="3" height="78" rx="1.5" fill="#22d3ee"/>
+      <text x="100" y="832" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">华瑞公司</text>
+      <text x="100" y="848" text-anchor="middle" fill="#8b949e" font-size="9">自建OA + ERP · Oracle</text>
+      <text x="100" y="862" text-anchor="middle" fill="#22d3ee" font-size="8">SSO · 待办 · 前置审批 · 台账 · 履约</text>
+      <text x="100" y="876" text-anchor="middle" fill="#22d3ee" font-size="8">风险 · C929科目关联</text>
+      <text x="100" y="888" text-anchor="middle" fill="#484f58" font-size="8">V02 · 20230717</text>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- 中左侧：成员单位（连接区，y420-880）        -->
+      <!-- ═══════════════════════════════════════════ -->
+
+      <!-- [M-L1] 诺和公司 -->
+      <rect x="195" y="410" width="155" height="68" rx="8" fill="url(#grad-left)" stroke="#1f6feb" stroke-width="1.2"/>
+      <rect x="195" y="410" width="3" height="68" rx="1.5" fill="#58a6ff"/>
+      <text x="272" y="430" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">诺和公司</text>
+      <text x="272" y="446" text-anchor="middle" fill="#8b949e" font-size="9">用友U8 · MS SQL</text>
+      <text x="272" y="460" text-anchor="middle" fill="#58a6ff" font-size="8">SSO · 待办 · 触发 · 台账 · 履约</text>
+      <text x="272" y="472" text-anchor="middle" fill="#484f58" font-size="8">V1.2 · 20241106</text>
+
+      <!-- [M-L2] 贸易事业部 -->
+      <rect x="195" y="510" width="155" height="68" rx="8" fill="url(#grad-left)" stroke="#1a7f64" stroke-width="1.2"/>
+      <rect x="195" y="510" width="3" height="68" rx="1.5" fill="#39d353"/>
+      <text x="272" y="530" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">贸易事业部</text>
+      <text x="272" y="546" text-anchor="middle" fill="#8b949e" font-size="9">NCC业财+期货 · Oracle</text>
+      <text x="272" y="560" text-anchor="middle" fill="#39d353" font-size="8">SSO · 待办 · 触发 · 台账 · 履约 · 移动</text>
+      <text x="272" y="572" text-anchor="middle" fill="#484f58" font-size="8">V01 · 20240711</text>
+
+      <!-- [M-L3] 设备公司 -->
+      <rect x="195" y="610" width="155" height="68" rx="8" fill="url(#grad-left)" stroke="#6e40c9" stroke-width="1.2"/>
+      <rect x="195" y="610" width="3" height="68" rx="1.5" fill="#a371f7"/>
+      <text x="272" y="630" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">设备公司</text>
+      <text x="272" y="646" text-anchor="middle" fill="#8b949e" font-size="9">全顺ERP · MS SQL</text>
+      <text x="272" y="660" text-anchor="middle" fill="#a371f7" font-size="8">SSO · 待办 · 触发 · 台账</text>
+      <text x="272" y="672" text-anchor="middle" fill="#484f58" font-size="8">V01 · 20241030</text>
+
+      <!-- [M-L4] 抟原公司 -->
+      <rect x="195" y="710" width="155" height="68" rx="8" fill="url(#grad-left)" stroke="#9e6a03" stroke-width="1.2"/>
+      <rect x="195" y="710" width="3" height="68" rx="1.5" fill="#e3b341"/>
+      <text x="272" y="730" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">抟原公司</text>
+      <text x="272" y="746" text-anchor="middle" fill="#8b949e" font-size="9">泛微OA + ERP · Oracle</text>
+      <text x="272" y="760" text-anchor="middle" fill="#e3b341" font-size="8">SSO · 待办 · 触发 · 前置控制 · 台账</text>
+      <text x="272" y="772" text-anchor="middle" fill="#484f58" font-size="8">V01 · 20230925</text>
+
+      <!-- [M-L5] 军工集团 -->
+      <rect x="195" y="810" width="155" height="68" rx="8" fill="url(#grad-left)" stroke="#b62324" stroke-width="1.2"/>
+      <rect x="195" y="810" width="3" height="68" rx="1.5" fill="#f85149"/>
+      <text x="272" y="830" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">军工集团</text>
+      <text x="272" y="846" text-anchor="middle" fill="#8b949e" font-size="9">致远OA · Oracle</text>
+      <text x="272" y="860" text-anchor="middle" fill="#f85149" font-size="8">SSO · 待办 · 触发起草 · 台账</text>
+      <text x="272" y="872" text-anchor="middle" fill="#484f58" font-size="8">V01 · 20230903</text>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!-- 右侧：集团级对接（3个）                    -->
+      <!-- ═══════════════════════════════════════════ -->
+
+      <!-- [R1] 集团招采平台 -->
+      <rect x="1000" y="410" width="180" height="68" rx="8" fill="url(#grad-right)" stroke="#0e7490" stroke-width="1.2"/>
+      <rect x="1177" y="410" width="3" height="68" rx="1.5" fill="#22d3ee"/>
+      <text x="1090" y="430" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">集团招采平台</text>
+      <text x="1090" y="446" text-anchor="middle" fill="#8b949e" font-size="9">集团自建招标采购系统</text>
+      <text x="1090" y="460" text-anchor="middle" fill="#22d3ee" font-size="8">触发起草 · 台账 · 超期预警</text>
+      <text x="1090" y="472" text-anchor="middle" fill="#484f58" font-size="8">V01 · 20230828</text>
+
+      <!-- [R2] 集团OA营销 -->
+      <rect x="1000" y="530" width="180" height="68" rx="8" fill="url(#grad-right)" stroke="#1f6feb" stroke-width="1.2"/>
+      <rect x="1177" y="530" width="3" height="68" rx="1.5" fill="#58a6ff"/>
+      <text x="1090" y="550" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">集团OA市场营销</text>
+      <text x="1090" y="566" text-anchor="middle" fill="#8b949e" font-size="9">A8 集团OA · 台账模块</text>
+      <text x="1090" y="580" text-anchor="middle" fill="#58a6ff" font-size="8">台账同步(每周日) · 填报提醒(每周五)</text>
+      <text x="1090" y="592" text-anchor="middle" fill="#484f58" font-size="8">V1.1 · 20230911</text>
+
+      <!-- [R3] 法大大/NC/运达 -->
+      <rect x="1000" y="660" width="180" height="78" rx="8" fill="url(#grad-right)" stroke="#6e40c9" stroke-width="1.2"/>
+      <rect x="1177" y="660" width="3" height="78" rx="1.5" fill="#a371f7"/>
+      <text x="1090" y="682" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="700">法大大 · NC · 运达CRM</text>
+      <text x="1090" y="698" text-anchor="middle" fill="#8b949e" font-size="9">电子签章 + 财务NC + 销售CRM</text>
+      <text x="1090" y="712" text-anchor="middle" fill="#a371f7" font-size="8">智能审核 · 批量电子签章</text>
+      <text x="1090" y="726" text-anchor="middle" fill="#a371f7" font-size="8">客商库同步 · 销售订单触发起草</text>
+      <text x="1090" y="738" text-anchor="middle" fill="#484f58" font-size="8">20240925</text>
+
+      <!-- ════════════════════════════════ -->
+      <!-- 连接线 - 左侧成员单位到平台      -->
+      <!-- ════════════════════════════════ -->
+
+      <!-- 检测所 [L1] → 平台 (触发起草蓝色) -->
+      <path d="M175 444 L350 444 L460 395" stroke="#1f6feb" stroke-width="1.5" fill="none" marker-end="url(#arr-blue)" opacity="0.7" stroke-dasharray="4,2"/>
+      <text x="300" y="438" fill="#1f6feb" font-size="8" opacity="0.8">触发起草/SSO</text>
+      <!-- 平台 → 检测所 (台账/待办回传紫色) -->
+      <path d="M460 400 L350 410 L175 460" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.6" stroke-dasharray="4,2"/>
+      <text x="280" y="426" fill="#a371f7" font-size="8" opacity="0.8">待办/台账</text>
+
+      <!-- 机电院 [L2] → 平台 -->
+      <path d="M175 540 L350 520 L460 420" stroke="#2ea043" stroke-width="1.5" fill="none" marker-end="url(#arr-green)" opacity="0.7" stroke-dasharray="4,2"/>
+      <!-- 平台 → 机电院 -->
+      <path d="M460 425 L350 530 L175 555" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.6" stroke-dasharray="4,2"/>
+
+      <!-- 京安公司 [L3] → 平台 -->
+      <path d="M175 640 L330 580 L460 440" stroke="#6e40c9" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.7" stroke-dasharray="4,2"/>
+      <!-- 平台 → 京安 -->
+      <path d="M460 445 L330 590 L175 655" stroke="#f0883e" stroke-width="1.5" fill="none" marker-end="url(#arr-orange)" opacity="0.6" stroke-dasharray="4,2"/>
+
+      <!-- 新联公司 [L4] → 平台 -->
+      <path d="M175 745 L330 620 L460 455" stroke="#f0883e" stroke-width="1.5" fill="none" marker-end="url(#arr-orange)" opacity="0.7" stroke-dasharray="4,2"/>
+      <!-- 平台 → 新联 -->
+      <path d="M460 460 L330 630 L175 760" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.6" stroke-dasharray="4,2"/>
+
+      <!-- 华瑞公司 [L5] → 平台 -->
+      <path d="M175 850 L320 700 L460 470" stroke="#22d3ee" stroke-width="1.5" fill="none" marker-end="url(#arr-cyan)" opacity="0.7" stroke-dasharray="4,2"/>
+      <!-- 平台 → 华瑞 -->
+      <path d="M460 475 L320 710 L175 865" stroke="#f85149" stroke-width="1.5" fill="none" marker-end="url(#arr-red)" opacity="0.6" stroke-dasharray="4,2"/>
+
+      <!-- 诺和公司 [M-L1] → 平台 -->
+      <path d="M350 444 L460 430" stroke="#58a6ff" stroke-width="1.5" fill="none" marker-end="url(#arr-blue)" opacity="0.8"/>
+      <!-- 平台 → 诺和 -->
+      <path d="M460 435 L350 458" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.7"/>
+
+      <!-- 贸易事业部 [M-L2] → 平台 -->
+      <path d="M350 540 L460 460" stroke="#39d353" stroke-width="1.5" fill="none" marker-end="url(#arr-green)" opacity="0.8"/>
+      <!-- 平台 → 贸易 -->
+      <path d="M460 465 L350 555" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.7"/>
+
+      <!-- 设备公司 [M-L3] → 平台 -->
+      <path d="M350 640 L460 490" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.8"/>
+      <!-- 平台 → 设备 -->
+      <path d="M460 495 L350 655" stroke="#f0883e" stroke-width="1.5" fill="none" marker-end="url(#arr-orange)" opacity="0.7"/>
+
+      <!-- 抟原公司 [M-L4] → 平台 -->
+      <path d="M350 740 L460 510" stroke="#e3b341" stroke-width="1.5" fill="none" marker-end="url(#arr-orange)" opacity="0.8"/>
+      <!-- 平台 → 抟原 -->
+      <path d="M460 515 L350 755" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.7"/>
+
+      <!-- 军工集团 [M-L5] → 平台 -->
+      <path d="M350 844 L460 530" stroke="#f85149" stroke-width="1.5" fill="none" marker-end="url(#arr-red)" opacity="0.8"/>
+      <!-- 平台 → 军工 -->
+      <path d="M460 535 L350 858" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.7"/>
+
+      <!-- ════════════════════════════════ -->
+      <!-- 连接线 - 平台 → 右侧集团级系统  -->
+      <!-- ════════════════════════════════ -->
+
+      <!-- 招采平台 双向 -->
+      <path d="M940 430 L1000 444" stroke="#22d3ee" stroke-width="1.5" fill="none" marker-end="url(#arr-cyan)" opacity="0.8"/>
+      <path d="M1000 452 L940 438" stroke="#f0883e" stroke-width="1.5" fill="none" marker-end="url(#arr-orange)" opacity="0.7"/>
+      <text x="960" y="430" fill="#22d3ee" font-size="8" opacity="0.8">触发起草</text>
+      <text x="960" y="455" fill="#f0883e" font-size="8" opacity="0.8">预警/状态</text>
+
+      <!-- 集团OA营销 双向 -->
+      <path d="M940 480 L960 540 L1000 555" stroke="#58a6ff" stroke-width="1.5" fill="none" marker-end="url(#arr-blue)" opacity="0.8"/>
+      <path d="M1000 563 L960 548 L940 490" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.7"/>
+      <text x="955" y="525" fill="#58a6ff" font-size="8" opacity="0.8">台账同步</text>
+
+      <!-- 法大大/NC/运达 双向 -->
+      <path d="M940 510 L970 660 L1000 685" stroke="#a371f7" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.8"/>
+      <path d="M1000 695 L970 670 L940 520" stroke="#22d3ee" stroke-width="1.5" fill="none" marker-end="url(#arr-cyan)" opacity="0.7"/>
+      <text x="950" y="620" fill="#a371f7" font-size="8" opacity="0.8">签章/客商</text>
+
+      <!-- ════════════════════════════════ -->
+      <!-- 图例区（底部）                   -->
+      <!-- ════════════════════════════════ -->
+      <rect x="420" y="910" width="560" height="60" rx="8" fill="#0f1b2e" stroke="#21262d" stroke-width="1"/>
+      <text x="700" y="927" text-anchor="middle" fill="#8b949e" font-size="9" font-weight="700">线型说明</text>
+
+      <line x1="440" y1="942" x2="480" y2="942" stroke="#1f6feb" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="485" y="946" fill="#8b949e" font-size="9">→ 触发起草/SSO请求</text>
+
+      <line x1="580" y1="942" x2="620" y2="942" stroke="#a371f7" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="625" y="946" fill="#8b949e" font-size="9">→ 台账/待办回传</text>
+
+      <line x1="730" y1="942" x2="770" y2="942" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="775" y="946" fill="#8b949e" font-size="9">→ 风险预警推送</text>
+
+      <line x1="880" y1="942" x2="920" y2="942" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="925" y="946" fill="#8b949e" font-size="9">─ 实时接口</text>
+
+      <line x1="440" y1="960" x2="480" y2="960" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="485" y="964" fill="#8b949e" font-size="9">→ 集团级平台连接</text>
+
+      <line x1="580" y1="960" x2="620" y2="960" stroke="#f0883e" stroke-width="1.5"/>
+      <text x="625" y="964" fill="#8b949e" font-size="9">→ 履约数据推送</text>
+
+    </svg>
+  </div>
+
+  <!-- 流程说明 -->
+  <div style="margin-top:20px; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px;">
+
+    <div style="background:var(--bg-surface); border:1px solid var(--border-main); border-radius:8px; padding:14px 16px; border-left:3px solid #58a6ff;">
+      <div style="font-size:12px; font-weight:700; color:#58a6ff; margin-bottom:8px;">触发起草流程</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.7;">
+        成员单位业务系统（ERP/OA/PM）完成前置业务后，通过<span style="color:#58a6ff">SSO单点登录</span>或<span style="color:#f0883e">自动消息推送接口</span>触发集团平台合同起草。平台接收业务数据自动填充合同草稿，用户完成起草后提交审批流程。
+      </div>
+    </div>
+
+    <div style="background:var(--bg-surface); border:1px solid var(--border-main); border-radius:8px; padding:14px 16px; border-left:3px solid #3fb950;">
+      <div style="font-size:12px; font-weight:700; color:#3fb950; margin-bottom:8px;">待办集成流程</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.7;">
+        合同审批流程产生的<span style="color:#3fb950">审批待办</span>通过消息推送接口实时推送至对应成员单位系统的待办中心，审批人无需切换系统即可完成审批操作，审批结果实时回写集团平台。
+      </div>
+    </div>
+
+    <div style="background:var(--bg-surface); border:1px solid var(--border-main); border-radius:8px; padding:14px 16px; border-left:3px solid #a371f7;">
+      <div style="font-size:12px; font-weight:700; color:#a371f7; margin-bottom:8px;">台账数据回传</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.7;">
+        合同审批归档后，集团平台通过<span style="color:#a371f7">数据接口</span>将合同台账（含合同编号、金额、甲乙方、有效期等）推回成员单位系统，成员单位可通过接口定时取回或增量更新，保证两边数据一致。
+      </div>
+    </div>
+
+    <div style="background:var(--bg-surface); border:1px solid var(--border-main); border-radius:8px; padding:14px 16px; border-left:3px solid #e3b341;">
+      <div style="font-size:12px; font-weight:700; color:#e3b341; margin-bottom:8px;">履约数据推送</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.7;">
+        成员单位的财务/ERP系统（NCC、U8、全顺ERP等）完成收款、付款、开票、收票等<span style="color:#e3b341">履约操作</span>后，通过接口将履约数据推送至集团平台，更新合同履约台账，形成完整合同生命周期数据。
+      </div>
+    </div>
+
+    <div style="background:var(--bg-surface); border:1px solid var(--border-main); border-radius:8px; padding:14px 16px; border-left:3px solid #f85149;">
+      <div style="font-size:12px; font-weight:700; color:#f85149; margin-bottom:8px;">风险预警流程</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.7;">
+        平台定时任务扫描合同状态，触发<span style="color:#f85149">超期未签约（7日）</span>、<span style="color:#f85149">履约逾期</span>等风险事件，自动生成风险上报流程，推送风险待办至责任人及成员单位系统，限期完成风险处置并形成风险台账。
+      </div>
+    </div>
+
+    <div style="background:var(--bg-surface); border:1px solid var(--border-main); border-radius:8px; padding:14px 16px; border-left:3px solid #22d3ee;">
+      <div style="font-size:12px; font-weight:700; color:#22d3ee; margin-bottom:8px;">集团级平台对接</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.7;">
+        <span style="color:#22d3ee">招采平台</span>定标后自动触发合同起草形成业务闭环；<span style="color:#58a6ff">集团OA</span>每周定时同步经营指标；<span style="color:#a371f7">法大大</span>提供合同文本比对与电子签章；<span style="color:#39d353">集团NC</span>统一客商档案；<span style="color:#3fb950">运达CRM</span>销售订单触发采购合同。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ── Tab 切换 ── */
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+/* ── 主题抽屉 ── */
+function toggleDrawer() {
+  const d = document.getElementById('theme-drawer');
+  d.classList.toggle('open');
+}
+
+/* ── 应用内置主题 ── */
+function applyTheme(theme, btn) {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? '' : theme);
+  if (theme === 'dark') document.documentElement.removeAttribute('data-theme');
+  // 更新按钮状态
+  document.querySelectorAll('.theme-preset-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // 同步颜色选择器
+  syncColorPickers(theme);
+  // 持久化
+  try { localStorage.setItem('cim-theme', theme); } catch(e){}
+}
+
+/* ── 同步颜色选择器显示 ── */
+const THEME_DEFAULTS = {
+  dark:      { bg: '#0d1117', surface: '#161b22', accent: '#58a6ff', text: '#e6edf3', border: '#21262d' },
+  light:     { bg: '#f6f8fa', surface: '#ffffff',  accent: '#0969da', text: '#1f2328', border: '#d0d7de' },
+  corporate: { bg: '#0a1628', surface: '#0f2040',  accent: '#4d9fff', text: '#e8f0fe', border: '#1a3a6e' }
+};
+function syncColorPickers(theme) {
+  const d = THEME_DEFAULTS[theme] || THEME_DEFAULTS.dark;
+  document.getElementById('cu-bg-base').value    = d.bg;
+  document.getElementById('cu-bg-surface').value = d.surface;
+  document.getElementById('cu-accent').value     = d.accent;
+  document.getElementById('cu-text-primary').value = d.text;
+  document.getElementById('cu-border').value     = d.border;
+}
+
+/* ── 设置单个CSS变量 ── */
+function setVar(name, val) {
+  document.documentElement.style.setProperty(name, val);
+  // 切换为"自定义"状态（不高亮任何预设按钮）
+  document.querySelectorAll('.theme-preset-btn').forEach(b => b.classList.remove('active'));
+  try {
+    let saved = JSON.parse(localStorage.getItem('cim-custom-vars') || '{}');
+    saved[name] = val;
+    localStorage.setItem('cim-custom-vars', JSON.stringify(saved));
+  } catch(e){}
+}
+
+/* ── 应用自定义CSS ── */
+function applyCustomCSS() {
+  const css = document.getElementById('cu-css').value;
+  document.getElementById('custom-css-style').textContent = css;
+  try { localStorage.setItem('cim-custom-css', css); } catch(e){}
+}
+
+/* ── 重置 ── */
+function resetTheme() {
+  document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('style');
+  document.getElementById('cu-fontsize').value = 100;
+  document.getElementById('fs-val').textContent = '100%';
+  document.documentElement.style.fontSize = '100%';
+  document.getElementById('cu-css').value = '';
+  document.getElementById('custom-css-style').textContent = '';
+  document.querySelectorAll('.theme-preset-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.theme-preset-btn[data-theme="dark"]').classList.add('active');
+  syncColorPickers('dark');
+  try {
+    localStorage.removeItem('cim-theme');
+    localStorage.removeItem('cim-custom-vars');
+    localStorage.removeItem('cim-custom-css');
+    localStorage.removeItem('cim-fontsize');
+  } catch(e){}
+}
+
+/* ── 页面加载恢复上次设置 ── */
+(function restoreSettings() {
+  try {
+    const theme = localStorage.getItem('cim-theme') || 'dark';
+    const btn = document.querySelector(`.theme-preset-btn[data-theme="${theme}"]`);
+    applyTheme(theme, btn);
+
+    const vars = JSON.parse(localStorage.getItem('cim-custom-vars') || '{}');
+    Object.keys(vars).forEach(k => document.documentElement.style.setProperty(k, vars[k]));
+    if (Object.keys(vars).length) {
+      // 如果有自定义变量，更新颜色picker
+      if (vars['--bg-base'])    document.getElementById('cu-bg-base').value    = vars['--bg-base'];
+      if (vars['--bg-surface']) document.getElementById('cu-bg-surface').value = vars['--bg-surface'];
+      if (vars['--accent-blue'])document.getElementById('cu-accent').value     = vars['--accent-blue'];
+      if (vars['--text-primary'])document.getElementById('cu-text-primary').value = vars['--text-primary'];
+      if (vars['--border-main'])document.getElementById('cu-border').value     = vars['--border-main'];
+      document.querySelectorAll('.theme-preset-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    const css = localStorage.getItem('cim-custom-css') || '';
+    if (css) {
+      document.getElementById('cu-css').value = css;
+      document.getElementById('custom-css-style').textContent = css;
+    }
+
+    const fs = localStorage.getItem('cim-fontsize');
+    if (fs) {
+      document.getElementById('cu-fontsize').value = fs;
+      document.getElementById('fs-val').textContent = fs + '%';
+      document.documentElement.style.fontSize = fs + '%';
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
