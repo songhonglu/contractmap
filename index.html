@@ -115,19 +115,54 @@ async function sha256(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
+/* ── 登录成功后初始化主内容 ── */
+function initApp() {
+  const overlay = document.getElementById('login-overlay');
+  overlay.style.display = 'none';
+  document.documentElement.style.visibility = 'visible';
+  document.getElementById('logout-bar').style.display = 'block';
+
+  // 恢复主题 / 自定义设置（与底部 restoreSettings 逻辑一致）
+  try {
+    const theme = localStorage.getItem('cim-theme') || 'dark';
+    const btn = document.querySelector(`.theme-preset-btn[data-theme="${theme}"]`);
+    if (typeof applyTheme === 'function') applyTheme(theme, btn);
+
+    const vars = JSON.parse(localStorage.getItem('cim-custom-vars') || '{}');
+    Object.keys(vars).forEach(k => document.documentElement.style.setProperty(k, vars[k]));
+    if (Object.keys(vars).length) {
+      if (vars['--bg-base'])     document.getElementById('cu-bg-base').value       = vars['--bg-base'];
+      if (vars['--bg-surface'])  document.getElementById('cu-bg-surface').value    = vars['--bg-surface'];
+      if (vars['--accent-blue']) document.getElementById('cu-accent').value        = vars['--accent-blue'];
+      if (vars['--text-primary'])document.getElementById('cu-text-primary').value  = vars['--text-primary'];
+      if (vars['--border-main']) document.getElementById('cu-border').value        = vars['--border-main'];
+      document.querySelectorAll('.theme-preset-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    const css = localStorage.getItem('cim-custom-css') || '';
+    if (css) {
+      document.getElementById('cu-css').value = css;
+      document.getElementById('custom-css-style').textContent = css;
+    }
+
+    const fs = localStorage.getItem('cim-fontsize');
+    if (fs) {
+      document.getElementById('cu-fontsize').value = fs;
+      document.getElementById('fs-val').textContent = fs + '%';
+      document.documentElement.style.fontSize = fs + '%';
+    }
+  } catch(e) {}
+}
+
 async function doLogin() {
-  const user  = document.getElementById('l-user').value.trim();
-  const pass  = document.getElementById('l-pass').value;
-  const err   = document.getElementById('l-err');
+  const user = document.getElementById('l-user').value.trim();
+  const pass = document.getElementById('l-pass').value;
   if (!user || !pass) { showErr('请输入用户名和密码'); return; }
-  // 计算 hash = sha256(username + ':' + password)
   const hash = await sha256(user + ':' + pass);
   if (hash === AUTH_HASH) {
     sessionStorage.setItem('cim_auth', AUTH_HASH);
-    document.getElementById('login-overlay').classList.add('hidden');
-    document.documentElement.style.visibility = 'visible';
-    document.getElementById('logout-bar').style.display = 'block';
-    err.classList.remove('show');
+    document.getElementById('l-err').classList.remove('show');
+    initApp();   // ← 统一走初始化流程，不再只改 visibility
   } else {
     showErr('用户名或密码错误，请重试');
     document.getElementById('l-pass').value = '';
@@ -147,17 +182,14 @@ function doLogout() {
 window.addEventListener('DOMContentLoaded', function() {
   const token = sessionStorage.getItem('cim_auth');
   if (token === AUTH_HASH) {
-    // 已登录
-    document.getElementById('login-overlay').classList.add('hidden');
-    document.documentElement.style.visibility = 'visible';
-    document.getElementById('logout-bar').style.display = 'block';
+    initApp();   // 已登录直接初始化
   } else {
-    document.getElementById('login-overlay').style.display = 'flex';
+    // 未登录：显示遮罩，显示页面（仅遮罩可见，内容被遮挡）
     document.documentElement.style.visibility = 'visible';
+    document.getElementById('login-overlay').style.display = 'flex';
   }
-  // 回车登录
-  document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-  document.getElementById('l-user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('l-pass').focus(); });
+  document.getElementById('l-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('l-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('l-pass').focus(); });
 });
 </script>
 <style>
