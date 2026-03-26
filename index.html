@@ -5,193 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>浙江省机电集团合同数字化平台 · 系统集成全景图 v2.0</title>
 
-<!-- ═══ 登录保护层（优先执行，防止内容闪现） ═══ -->
-<script>
-/* 使用 SHA-256 哈希校验凭证，不明文存储密码 */
-const AUTH_HASH = 'b0ccefba08768538d1dc999f85155c95b27b17820324493c8278422c598fbd6c';
-// 检查是否已登录
-(function() {
-  const token = sessionStorage.getItem('cim_auth');
-  if (token !== AUTH_HASH) {
-    // 未登录：立刻隐藏 body
-    document.documentElement.style.visibility = 'hidden';
-  }
-})();
-</script>
 
-<style>
-/* ─── 登录遮罩层 ─── */
-#login-overlay {
-  position: fixed; inset: 0; z-index: 99999;
-  display: flex; align-items: center; justify-content: center;
-  background: #0a0e17;
-  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-}
-#login-overlay.hidden { display: none; }
-
-.login-box {
-  background: #0f1923;
-  border: 1px solid #1f3a5f;
-  border-radius: 16px;
-  padding: 40px 44px;
-  width: 380px;
-  box-shadow: 0 0 60px rgba(31,111,235,0.2), 0 4px 32px rgba(0,0,0,0.6);
-  position: relative;
-  overflow: hidden;
-}
-.login-box::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, transparent, #1f6feb, #58a6ff, #1f6feb, transparent);
-}
-.login-logo {
-  text-align: center; margin-bottom: 28px;
-}
-.login-logo .licon {
-  font-size: 36px; display: block; margin-bottom: 10px;
-}
-.login-logo h2 {
-  font-size: 16px; font-weight: 800; color: #e6edf3;
-  letter-spacing: .5px; line-height: 1.4;
-}
-.login-logo p {
-  font-size: 11px; color: #58a6ff; margin-top: 5px;
-}
-.login-field {
-  margin-bottom: 16px;
-}
-.login-field label {
-  display: block; font-size: 11px; font-weight: 700;
-  color: #6e7681; text-transform: uppercase; letter-spacing: 1px;
-  margin-bottom: 7px;
-}
-.login-field input {
-  width: 100%; padding: 11px 14px;
-  background: #161b22; border: 1px solid #21262d;
-  border-radius: 8px; color: #e6edf3; font-size: 14px;
-  outline: none; transition: border-color .2s, box-shadow .2s;
-  font-family: inherit;
-}
-.login-field input:focus {
-  border-color: #1f6feb;
-  box-shadow: 0 0 0 3px rgba(31,111,235,0.2);
-}
-.login-field input::placeholder { color: #484f58; }
-.login-btn {
-  width: 100%; padding: 13px;
-  background: linear-gradient(90deg, #1f6feb, #388bfd);
-  color: #fff; font-size: 14px; font-weight: 800;
-  border: none; border-radius: 8px; cursor: pointer;
-  margin-top: 8px; letter-spacing: .5px;
-  transition: opacity .2s, transform .1s;
-}
-.login-btn:hover { opacity: .9; }
-.login-btn:active { transform: scale(.98); }
-.login-err {
-  margin-top: 12px; padding: 10px 14px;
-  background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3);
-  border-radius: 6px; color: #f85149; font-size: 12px;
-  text-align: center; display: none;
-}
-.login-err.show { display: block; }
-.login-footer {
-  text-align: center; margin-top: 24px;
-  font-size: 10px; color: #484f58;
-}
-.logout-btn {
-  position: fixed; bottom: 18px; left: 18px; z-index: 1001;
-  background: rgba(22,27,34,0.9); border: 1px solid #21262d;
-  border-radius: 6px; color: #6e7681; font-size: 11px;
-  padding: 6px 12px; cursor: pointer; transition: all .2s;
-  font-family: inherit;
-}
-.logout-btn:hover { border-color: #f85149; color: #f85149; }
-</style>
-
-<script>
-/* ─── 登录系统核心逻辑 ─── */
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-/* ── 登录成功后初始化主内容 ── */
-function initApp() {
-  const overlay = document.getElementById('login-overlay');
-  overlay.style.display = 'none';
-  document.documentElement.style.visibility = 'visible';
-  document.getElementById('logout-bar').style.display = 'block';
-
-  // 恢复主题 / 自定义设置（与底部 restoreSettings 逻辑一致）
-  try {
-    const theme = localStorage.getItem('cim-theme') || 'dark';
-    const btn = document.querySelector(`.theme-preset-btn[data-theme="${theme}"]`);
-    if (typeof applyTheme === 'function') applyTheme(theme, btn);
-
-    const vars = JSON.parse(localStorage.getItem('cim-custom-vars') || '{}');
-    Object.keys(vars).forEach(k => document.documentElement.style.setProperty(k, vars[k]));
-    if (Object.keys(vars).length) {
-      if (vars['--bg-base'])     document.getElementById('cu-bg-base').value       = vars['--bg-base'];
-      if (vars['--bg-surface'])  document.getElementById('cu-bg-surface').value    = vars['--bg-surface'];
-      if (vars['--accent-blue']) document.getElementById('cu-accent').value        = vars['--accent-blue'];
-      if (vars['--text-primary'])document.getElementById('cu-text-primary').value  = vars['--text-primary'];
-      if (vars['--border-main']) document.getElementById('cu-border').value        = vars['--border-main'];
-      document.querySelectorAll('.theme-preset-btn').forEach(b => b.classList.remove('active'));
-    }
-
-    const css = localStorage.getItem('cim-custom-css') || '';
-    if (css) {
-      document.getElementById('cu-css').value = css;
-      document.getElementById('custom-css-style').textContent = css;
-    }
-
-    const fs = localStorage.getItem('cim-fontsize');
-    if (fs) {
-      document.getElementById('cu-fontsize').value = fs;
-      document.getElementById('fs-val').textContent = fs + '%';
-      document.documentElement.style.fontSize = fs + '%';
-    }
-  } catch(e) {}
-}
-
-async function doLogin() {
-  const user = document.getElementById('l-user').value.trim();
-  const pass = document.getElementById('l-pass').value;
-  if (!user || !pass) { showErr('请输入用户名和密码'); return; }
-  const hash = await sha256(user + ':' + pass);
-  if (hash === AUTH_HASH) {
-    sessionStorage.setItem('cim_auth', AUTH_HASH);
-    document.getElementById('l-err').classList.remove('show');
-    initApp();   // ← 统一走初始化流程，不再只改 visibility
-  } else {
-    showErr('用户名或密码错误，请重试');
-    document.getElementById('l-pass').value = '';
-  }
-}
-
-function showErr(msg) {
-  const err = document.getElementById('l-err');
-  err.textContent = msg; err.classList.add('show');
-}
-
-function doLogout() {
-  sessionStorage.removeItem('cim_auth');
-  location.reload();
-}
-
-window.addEventListener('DOMContentLoaded', function() {
-  const token = sessionStorage.getItem('cim_auth');
-  if (token === AUTH_HASH) {
-    initApp();   // 已登录直接初始化
-  } else {
-    // 未登录：显示遮罩，显示页面（仅遮罩可见，内容被遮挡）
-    document.documentElement.style.visibility = 'visible';
-    document.getElementById('login-overlay').style.display = 'flex';
-  }
-  document.getElementById('l-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-  document.getElementById('l-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('l-pass').focus(); });
-});
-</script>
 <style>
 /* ═══════════════════════════════════════════════════════
    主题变量系统
@@ -600,33 +414,44 @@ body {
 /* SVG diagram */
 svg text { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
 </style>
+<!-- ═══ 门户授权检查（由项目门户统一管理登录） ═══ -->
+<script>
+(function() {
+  const PORTAL_TOKEN = 'portal_v1_songhw_2026';
+  const AUTH_CTRL_KEY = 'portal_auth_ctrl';
+  // 检查门户是否要求此子项目需要登录
+  function needsAuth() {
+    try {
+      const ctrl = JSON.parse(localStorage.getItem(AUTH_CTRL_KEY) || '{}');
+      if ('contractmap' in ctrl) return ctrl['contractmap'];
+    } catch(e) {}
+    return true; // 默认需要登录
+  }
+  if (needsAuth()) {
+    // 检查门户 session token
+    const sessionToken = sessionStorage.getItem('portal_auth');
+    // 也支持 URL hash token（从门户跳转时携带）
+    const hashToken = (location.hash.match(/portal_token=([^&]+)/) || [])[1];
+    if (hashToken) {
+      try { sessionStorage.setItem('portal_auth', decodeURIComponent(hashToken)); } catch(e) {}
+      // 清除 hash 中的 token（不暴露在 URL 中）
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+    const token = sessionStorage.getItem('portal_auth') || (hashToken ? decodeURIComponent(hashToken) : '');
+    if (token !== PORTAL_TOKEN) {
+      // 未通过门户登录，跳转到门户
+      document.documentElement.style.visibility = 'hidden';
+      sessionStorage.setItem('portal_redirect', location.href);
+      location.href = 'https://songhonglu.github.io/projects/index.html';
+    }
+  }
+  document.documentElement.style.visibility = 'visible';
+})();
+</script>
 </head>
 <body>
 
-<!-- ═══ 登录遮罩 ═══ -->
-<div id="login-overlay">
-  <div class="login-box">
-    <div class="login-logo">
-      <span class="licon">🔐</span>
-      <h2>浙江省机电集团<br>合同数字化平台</h2>
-      <p>系统集成全景图 v2.0 · 内部访问</p>
-    </div>
-    <div class="login-field">
-      <label>用户名</label>
-      <input type="text" id="l-user" placeholder="请输入用户名" autocomplete="username">
-    </div>
-    <div class="login-field">
-      <label>密码</label>
-      <input type="password" id="l-pass" placeholder="请输入密码" autocomplete="current-password">
-    </div>
-    <button class="login-btn" onclick="doLogin()">登 录</button>
-    <div id="l-err" class="login-err"></div>
-    <div class="login-footer">本页面仅限授权人员访问 · 请勿外传链接</div>
-  </div>
-</div>
 
-<!-- 退出登录 -->
-<button class="logout-btn" id="logout-bar" style="display:none;" onclick="doLogout()">⎋ 退出登录</button>
 
 <!-- ═══ 主题切换器 ═══ -->
 <div id="theme-panel">
