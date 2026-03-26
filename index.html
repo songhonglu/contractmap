@@ -414,38 +414,55 @@ body {
 /* SVG diagram */
 svg text { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
 </style>
-<!-- ═══ 门户授权检查（由项目门户统一管理登录） ═══ -->
+<!-- ═══ 门户统一授权检查 v2（安全版：不依赖 URL 参数传 token） ═══ -->
 <script>
 (function() {
+  const PROJ_ID      = 'contractmap';
   const PORTAL_TOKEN = 'portal_v1_songhw_2026';
-  const AUTH_CTRL_KEY = 'portal_auth_ctrl';
-  // 检查门户是否要求此子项目需要登录
+  const PORTAL_URL   = 'https://songhonglu.github.io/projects/index.html';
+  const AUTH_SES_KEY = 'portal_auth_session';   // localStorage 跨路径共享（同 origin）
+  const AUTH_DB_KEY  = 'portal_db_v2';
+
+  // 1. 检查门户是否要求该项目需要认证
   function needsAuth() {
     try {
-      const ctrl = JSON.parse(localStorage.getItem(AUTH_CTRL_KEY) || '{}');
-      if ('contractmap' in ctrl) return ctrl['contractmap'];
+      const db = JSON.parse(localStorage.getItem(AUTH_DB_KEY) || '{}');
+      const ctrl = db.authCtrl || {};
+      if (PROJ_ID in ctrl) return ctrl[PROJ_ID];
     } catch(e) {}
-    return true; // 默认需要登录
+    return true; // 默认需要认证
   }
-  if (needsAuth()) {
-    // 检查门户 session token
-    const sessionToken = sessionStorage.getItem('portal_auth');
-    // 也支持 URL hash token（从门户跳转时携带）
-    const hashToken = (location.hash.match(/portal_token=([^&]+)/) || [])[1];
-    if (hashToken) {
-      try { sessionStorage.setItem('portal_auth', decodeURIComponent(hashToken)); } catch(e) {}
-      // 清除 hash 中的 token（不暴露在 URL 中）
-      history.replaceState(null, '', location.pathname + location.search);
-    }
-    const token = sessionStorage.getItem('portal_auth') || (hashToken ? decodeURIComponent(hashToken) : '');
-    if (token !== PORTAL_TOKEN) {
-      // 未通过门户登录，跳转到门户
-      document.documentElement.style.visibility = 'hidden';
-      sessionStorage.setItem('portal_redirect', location.href);
-      location.href = 'https://songhonglu.github.io/projects/index.html';
-    }
+
+  // 2. 校验门户 session（localStorage 跨路径共享，同 origin 下有效）
+  function isAuthenticated() {
+    try {
+      const ses = JSON.parse(localStorage.getItem(AUTH_SES_KEY) || 'null');
+      if (!ses) return false;
+      if (ses.token !== PORTAL_TOKEN) return false;
+      if (Date.now() - ses.ts > ses.ttl) {
+        localStorage.removeItem(AUTH_SES_KEY);
+        return false;
+      }
+      return true;
+    } catch(e) { return false; }
   }
+
+  if (needsAuth() && !isAuthenticated()) {
+    // 未认证 → 隐藏内容并跳转门户
+    document.documentElement.style.visibility = 'hidden';
+    try { sessionStorage.setItem('portal_redirect', location.href); } catch(e) {}
+    location.replace(PORTAL_URL);
+    return;
+  }
+
   document.documentElement.style.visibility = 'visible';
+
+  // 3. 在页面上显示当前登录用户信息（可选）
+  window.__portalUser = (function() {
+    try {
+      return JSON.parse(localStorage.getItem(AUTH_SES_KEY) || '{}');
+    } catch(e) { return {}; }
+  })();
 })();
 </script>
 </head>
